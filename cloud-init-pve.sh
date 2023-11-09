@@ -9,6 +9,32 @@ name="debian-11"
 bridge_type="vmbr1"
 storage="local-zfs"
 
+#walidacja danych
+
+if [ $memory -ge 512 -a $memory -le 10240 ]
+then
+    if [ $cpu -ge 1 -a $cpu -le 4 ]
+    then
+        if [ -f $image_path ]
+        then
+            if [ ! -n "`file -b $image_path  |grep QCOW`" ]
+            then
+                echo "obraz nie jest w formacie qcow2"
+                exit 1
+            fi
+        else
+            echo "obraz nie istnieje lub podana zostala zla sciezka"
+            exit 1
+        fi
+    else
+    echo "bledna wartosc cpu"
+    exit 1
+    fi
+else
+echo "bledna wartosc ram"
+exit 1
+fi
+
 #funkcja to tworzenia maszyny
 create_vm()
 {
@@ -24,7 +50,6 @@ adjust_vm()
     qm template $1
 
 }
-
 
 #znalezienie wolnego id 
 #new_id=0
