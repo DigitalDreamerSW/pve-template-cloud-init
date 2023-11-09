@@ -1,23 +1,48 @@
 #! /bin/bash
 #tworzenie nowego template na proxmoxie z wykorzystaniem obrazu cloud-init
 
-#znajdywanie pierwszego wolnego id zaczynajacego sie od 9000
-#pierw warunek czy w ogole sa tam jakies id, potem znajdz ostatni i sprawdz czy jest wiekszy lub rowny
-#jeden jestli prawdziwy warunek do dodaj do niego jeden po prostu
-#! /bin/bash
+#parametry maszyny wzorcowej
+memory=2048
+cpu=2
+image_path="/mnt/cloud-init/debian-12-generic-amd64-20231013-1532.qcow2"
+name="debian-11"
+bridge_type="vmbr1"
+storage="local-zfs"
+
+#funkcja to tworzenia maszyny
+create_vm()
+{
+    echo "nowe id to: $1"
+    qm create $1 --memory $memory --cores $cpu --net0 virtio,bridge=$bridge_type --name $name --scsihw virtio-scsi-pci
+}
+
+adjust_vm()
+{
+    qm set $1 --scsi0 $storage:0,import-from=$image_path #importowanie dysku
+    qm set $1 --ide2 $storage:cloudinit ## cd-rom cloud init
+    qm set $1 --boot order=scsi0 
+    qm template $1
+
+}
+
+
+#znalezienie wolnego id 
+#new_id=0
 start_id=9000 #przyjmuje ze id maszyn template beda sie zaczynac od 9000
-if [ ! -n "`qm list | tail -n 1`" ] # -n sprawdza czy cos sie wyswietlilo a ! n znaczy ze nic sie nie wyswietlilo
+if [ ! -n "`qm list | tail -n 1`" ] # -n sprawdzanie czy sa jakies wiersze czy nie 
 then
-    echo "nie ma zadnych id"
-    echo "jako poczatkowy id przyjmuje 9000"
+    create_vm $start_id
+    adjust_vm $start_id
     exit 0
 else
     last_id=`qm list |tail -n 1 | awk '{print $1}'` #znajduje ostatni id na liscie
     if [ $last_id -ge 9000 ] # sprawdzam czy jest wiekszy lub rowny 9000
     then
     new_id=$(($last_id+1))
-    echo "kolejne id to $new_id"
+    create_vm $new_id
+    adjust_vm $new_id
     else
-    echo "jako poczatkowy id przyjme 9000" #byly jakies id ale sa mniejsze niz 9000 wiec zaczne od 9000
+    create_vm $start_id
+    adjust_vm $start_id
     fi
 fi
