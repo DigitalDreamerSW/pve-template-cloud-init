@@ -42,6 +42,14 @@ else
     fi
 fi
 
+#Sprawdzenie czy nazwa tworzonego zablonu juz nie istnieje
+if [ -n "`qm list |grep -w  $name `" ]
+then
+echo "Szablon o nazwie $name juz istnieje !"
+exit 1
+fi
+
+
 #walidacja danych
 
 if [ $memory -ge 512 -a $memory -le 10240 ]
